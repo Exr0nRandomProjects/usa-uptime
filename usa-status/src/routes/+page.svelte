@@ -527,7 +527,7 @@
     
     <!-- Footer -->
     <div class="mt-6 text-center text-xs text-gray-500">
-      <p>* This is a parody. Your tax dollars at rest.</p>
+      <p>* Not an official service of the United States of America. Your tax dollars at rest.</p>
     </div>
   </div>
 </div>
