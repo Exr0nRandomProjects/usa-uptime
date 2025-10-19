@@ -5,8 +5,6 @@
   
   let shutdowns = [];
   let agencyImpacts = [];
-  let departmentGroups = [];
-  let globalUptimePercentage = 99.99;
   let expandedDepartments = new Set();
   let currentTime = $state(new Date());
   let interval;
@@ -50,7 +48,7 @@
     return ((totalDays - shutdownDays) / totalDays * 100).toFixed(9);
   };
   
-  // Calculate shutdown days for a department
+  // Calculate shutdown days for a department (live)
   const calculateDepartmentShutdownDays = (dept, impacts) => {
     const shutdownSet = new Set();
     impacts.forEach(impact => {
@@ -61,11 +59,23 @@
     
     return Array.from(shutdownSet).reduce((sum, shutdownId) => {
       const shutdown = shutdowns.find(s => s.shutdown_id === shutdownId);
-      return sum + (shutdown ? parseFloat(shutdown.duration_days) || 0 : 0);
+      if (shutdown) {
+        if (shutdown.duration_days) {
+          return sum + parseFloat(shutdown.duration_days);
+        } else if (shutdown.start_datetime_et) {
+          // Ongoing shutdown - calculate current duration
+          const start = new Date(shutdown.start_datetime_et);
+          const now = currentTime;
+          const diff = now - start;
+          const days = diff / (1000 * 60 * 60 * 24);
+          return sum + days;
+        }
+      }
+      return sum;
     }, 0);
   };
   
-  // Calculate shutdown days for an agency
+  // Calculate shutdown days for an agency (live)
   const calculateAgencyShutdownDays = (agency, impacts) => {
     const shutdownSet = new Set();
     impacts.forEach(impact => {
@@ -76,7 +86,19 @@
     
     return Array.from(shutdownSet).reduce((sum, shutdownId) => {
       const shutdown = shutdowns.find(s => s.shutdown_id === shutdownId);
-      return sum + (shutdown ? parseFloat(shutdown.duration_days) || 0 : 0);
+      if (shutdown) {
+        if (shutdown.duration_days) {
+          return sum + parseFloat(shutdown.duration_days);
+        } else if (shutdown.start_datetime_et) {
+          // Ongoing shutdown - calculate current duration
+          const start = new Date(shutdown.start_datetime_et);
+          const now = currentTime;
+          const diff = now - start;
+          const days = diff / (1000 * 60 * 60 * 24);
+          return sum + days;
+        }
+      }
+      return sum;
     }, 0);
   };
   
@@ -104,34 +126,62 @@
     deptData.impacts.push(impact);
   });
   
-  // Convert to array format and calculate uptimes
-  departmentGroups = Array.from(deptMap.entries()).map(([dept, data]) => {
+  // Convert to array format with static data structure
+  const staticDepartmentGroups = Array.from(deptMap.entries()).map(([dept, data]) => {
     const agencies = Array.from(data.agencies);
-    const deptShutdownDays = calculateDepartmentShutdownDays(dept, data.impacts);
-    const deptUptime = calculateUptime(deptShutdownDays, 15 * 365.25);
-    
-    // Calculate individual agency uptimes
-    const agencyUptimes = {};
-    agencies.forEach(agency => {
-      const agencyDays = calculateAgencyShutdownDays(agency, data.impacts);
-      agencyUptimes[agency] = calculateUptime(agencyDays, 15 * 365.25);
-    });
-    
     return {
       name: dept,
       agencies,
-      uptime: deptUptime,
-      agencyUptimes
+      impacts: data.impacts
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
+
+  // Reactive department groups with live uptimes
+  let departmentGroups = $derived(
+    staticDepartmentGroups.map(dept => {
+      const deptShutdownDays = calculateDepartmentShutdownDays(dept.name, dept.impacts);
+      const deptUptime = calculateUptime(deptShutdownDays, 15 * 365.25);
+      
+      // Calculate individual agency uptimes
+      const agencyUptimes = {};
+      dept.agencies.forEach(agency => {
+        const agencyDays = calculateAgencyShutdownDays(agency, dept.impacts);
+        agencyUptimes[agency] = calculateUptime(agencyDays, 15 * 365.25);
+      });
+      
+      return {
+        name: dept.name,
+        agencies: dept.agencies,
+        uptime: deptUptime,
+        agencyUptimes
+      };
+    })
+  );
   
-  // Calculate global uptime
-  const totalDays = 15 * 365.25;
-  const shutdownDays = shutdowns.reduce((sum, s) => {
-    const days = parseFloat(s.duration_days) || 0;
-    return sum + days;
-  }, 0);
-  globalUptimePercentage = calculateUptime(shutdownDays, totalDays);
+  // Calculate live uptime percentages
+  const calculateLiveUptime = () => {
+    const totalDays = 15 * 365.25;
+    let shutdownDays = 0;
+    
+    shutdowns.forEach(s => {
+      if (s.duration_days) {
+        // Completed shutdown
+        shutdownDays += parseFloat(s.duration_days);
+      } else if (s.start_datetime_et) {
+        // Ongoing shutdown - calculate current duration
+        const start = new Date(s.start_datetime_et);
+        const now = currentTime;
+        const diff = now - start;
+        const days = diff / (1000 * 60 * 60 * 24);
+        shutdownDays += days;
+      }
+    });
+    
+    return calculateUptime(shutdownDays, totalDays);
+  };
+
+  // Reactive global uptime
+  let globalUptimePercentage = $derived(calculateLiveUptime());
   
   // Get status for a specific month
   const getMonthStatus = (monthStart, monthEnd, dept = null, agency = null) => {
@@ -249,7 +299,7 @@
     interval = setInterval(() => {
       currentTime = new Date();
       console.log('Timer updated:', currentTime);
-    }, 300);
+    }, 30);
   });
 
   onDestroy(() => {
