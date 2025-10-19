@@ -1,0 +1,29 @@
+shutdown_id,department,agency,metric,value,units,note,source_url
+2013-10,USDA,USDA (overall),furloughed_percent,84,percent,GovExec summary of contingency plans,https://www.govexec.com/pay-benefits/2013/09/agencies-post-shutdown-plans-online/70976/
+2013-10,Commerce,Commerce (overall),furloughed_percent,85,percent,"GovExec summary; aligns with 40,234/46,420",https://www.govexec.com/pay-benefits/2013/09/agencies-post-shutdown-plans-online/70976/
+2013-10,DoD,DoD civilians,furloughed_percent,50,percent,Many recalled under Pay Our Military Act,https://www.gao.gov/assets/gao-15-86.pdf
+2013-10,Education,Education (overall),furloughed_percent,95,percent,GovExec summary,https://www.govexec.com/pay-benefits/2013/09/agencies-post-shutdown-plans-online/70976/
+2013-10,Energy,DOE (overall),furloughed_percent,69,percent,GovExec summary,https://www.govexec.com/pay-benefits/2013/09/agencies-post-shutdown-plans-online/70976/
+2013-10,EPA,Environmental Protection Agency,furloughed_percent,95,percent,GovExec summary; Wikipedia >93%,https://www.govexec.com/pay-benefits/2013/09/agencies-post-shutdown-plans-online/70976/
+2013-10,HUD,HUD (overall),furloughed_percent,96,percent,GovExec summary,https://www.govexec.com/pay-benefits/2013/09/agencies-post-shutdown-plans-online/70976/
+2013-10,Interior,Interior (overall),furloughed_percent,81,percent,GovExec summary,https://www.govexec.com/pay-benefits/2013/09/agencies-post-shutdown-plans-online/70976/
+2013-10,Justice,Justice (overall),furloughed_percent,16,percent,GovExec summary,https://www.govexec.com/pay-benefits/2013/09/agencies-post-shutdown-plans-online/70976/
+2013-10,Labor,Labor (overall),furloughed_percent,81,percent,GovExec summary,https://www.govexec.com/pay-benefits/2013/09/agencies-post-shutdown-plans-online/70976/
+2013-10,NASA,NASA,furloughed_percent,97,percent,"<600 of >18,000 remained",https://en.wikipedia.org/wiki/List_of_agencies_affected_by_the_2013_United_States_federal_government_shutdown
+2013-10,NSF,National Science Foundation,furloughed_percent,99,percent,GovExec summary,https://www.govexec.com/pay-benefits/2013/09/agencies-post-shutdown-plans-online/70976/
+2013-10,Commerce,National Weather Service,status,operational,text,Forecasts/warnings continued; research curtailed,https://en.wikipedia.org/wiki/List_of_agencies_affected_by_the_2013_United_States_federal_government_shutdown
+2013-10,HHS,CDC,furloughed_percent,68,percent,Limited outbreak investigation and flu surveillance,https://en.wikipedia.org/wiki/List_of_agencies_affected_by_the_2013_United_States_federal_government_shutdown
+2013-10,Smithsonian,Smithsonian Institution,status,closed,text,Museums and National Zoo closed,https://en.wikipedia.org/wiki/2013_United_States_federal_government_shutdown
+2013-10,Interior,National Park Service,status,closed,text,All 401 park units closed,https://en.wikipedia.org/wiki/2013_United_States_federal_government_shutdown
+2018-12,Interior,National Park Service,furloughed_percent,80,percent,">80% (~16,000) furloughed",https://en.wikipedia.org/wiki/List_of_agencies_affected_by_the_2018%E2%80%932019_United_States_federal_government_shutdown
+2018-12,HUD,HUD,furloughed_percent,95,percent,"~7,100 furloughed",https://en.wikipedia.org/wiki/List_of_agencies_affected_by_the_2018%E2%80%932019_United_States_federal_government_shutdown
+2018-12,Agriculture,U.S. Forest Service,furloughed_percent,80,percent,"At least 80% (~28,800) furloughed",https://en.wikipedia.org/wiki/List_of_agencies_affected_by_the_2018%E2%80%932019_United_States_federal_government_shutdown
+2018-12,Treasury,IRS,furloughed,52000,employees,Approximate count furloughed,https://en.wikipedia.org/wiki/List_of_agencies_affected_by_the_2018%E2%80%932019_United_States_federal_government_shutdown
+2018-12,Transportation,DOT (overall),furloughed_percent,30,percent,">30% (~18,300) furloughed",https://en.wikipedia.org/wiki/List_of_agencies_affected_by_the_2018%E2%80%932019_United_States_federal_government_shutdown
+2018-12,Justice,FBI,working_unpaid,13709,employees,Agents working without pay,https://en.wikipedia.org/wiki/List_of_agencies_affected_by_the_2018%E2%80%932019_United_States_federal_government_shutdown
+2018-12,Commerce,NOAA/NWS,status,operational,text,Operations critical to life and property continued,https://en.wikipedia.org/wiki/List_of_agencies_affected_by_the_2018%E2%80%932019_United_States_federal_government_shutdown
+2025-10,NASA,NASA (civil servants),furloughed,15094,employees,NASA contingency plan (9/29/2025),https://www.nasa.gov/wp-content/uploads/2025/09/nasa-continuity-of-appropriations-plan-final-9-29-2025.pdf
+2025-10,NASA,NASA (exempted),working_exempted,3124,employees,NASA contingency plan,https://www.nasa.gov/wp-content/uploads/2025/09/nasa-continuity-of-appropriations-plan-final-9-29-2025.pdf
+2025-10,Interior,U.S. Fish and Wildlife Service,furloughed,4655,employees,"WaPo reports 4,655 of 7,001 furloughed",https://www.washingtonpost.com/climate-environment/2025/10/18/shutdown-wildlife-refuges-open-hunting/
+2025-10,Smithsonian,Smithsonian Institution,status,closed,text,Museums and National Zoo closed,https://www.theguardian.com/us-news/2025/oct/13/smithsonian-museums-national-zoo-government-shutdown
+2025-10,Energy,National Nuclear Security Administration (civilian),furloughed_percent,80,percent,"~1,400 furloughed; ~375 exempted",https://www.politico.com/news/2025/10/17/top-nuclear-weapons-agency-to-furlough-most-staff-amid-shutdown-00613640
