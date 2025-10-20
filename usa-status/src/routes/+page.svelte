@@ -106,9 +106,6 @@
   shutdowns = parseCSV(shutdownsCsv);
   agencyImpacts = parseCSV(agencyImpactsCsv);
   
-  console.log('Loaded shutdowns:', shutdowns);
-  console.log('Sample shutdown:', shutdowns[0]);
-  
   // Group agencies by department
   const deptMap = new Map();
   agencyImpacts.forEach(impact => {
@@ -290,7 +287,6 @@
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
     
     const result = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-    console.log('Duration calculated:', result, 'for start:', startDate);
     return result;
   };
 
@@ -298,7 +294,6 @@
   onMount(() => {
     interval = setInterval(() => {
       currentTime = new Date();
-      console.log('Timer updated:', currentTime);
     }, 30);
   });
 

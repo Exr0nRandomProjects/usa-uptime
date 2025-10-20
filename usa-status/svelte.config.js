@@ -11,7 +11,15 @@ const config = {
 		prerender: {
 			// pre-render all pages
 			crawl: true,
-			entries: ['*', '/']
+			entries: ['*', '/'],
+			handleHttpError: ({ path, referrer, message }) => {
+				// 503 errors on /down are expected and valid
+				if (path === '/down' && message.includes('503')) {
+					return;
+				}
+				// Throw an error for other cases
+				throw new Error(message);
+			}
 		}
 	}
 };
