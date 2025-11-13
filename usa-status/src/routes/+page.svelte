@@ -8,6 +8,78 @@
   let expandedDepartments = new Set();
   let currentTime = $state(new Date());
   let interval;
+  let lastSecondsLogTimestamp = 0;
+  const MS_PER_DAY = 1000 * 60 * 60 * 24;
+  
+  const parseDate = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+  
+  const getShutdownDurationDays = (shutdown, now = currentTime) => {
+    const start = parseDate(shutdown.start_datetime_et);
+    if (!start) {
+      return shutdown.duration_days ? parseFloat(shutdown.duration_days) : 0;
+    }
+    
+    if (start > now) {
+      return 0;
+    }
+    
+    const end = parseDate(shutdown.end_datetime_et);
+    const effectiveEnd = end && end < now ? end : now;
+    
+    if (effectiveEnd <= start) {
+      return 0;
+    }
+    
+    return (effectiveEnd - start) / MS_PER_DAY;
+  };
+  
+  const isShutdownActive = (shutdown, now = currentTime) => {
+    const start = parseDate(shutdown.start_datetime_et);
+    if (!start || start > now) return false;
+    const end = parseDate(shutdown.end_datetime_et);
+    return !end || now <= end;
+  };
+  
+  const findLatestShutdown = () => {
+    let latest = null;
+    shutdowns.forEach(shutdown => {
+      const start = parseDate(shutdown.start_datetime_et);
+      if (!start) return;
+      if (!latest || start > latest.start) {
+        latest = { shutdown, start };
+      }
+    });
+    return latest;
+  };
+  
+  const logSecondsRelativeToLastShutdown = (now = currentTime) => {
+    const latest = findLatestShutdown();
+    if (!latest) return;
+    const { shutdown, start } = latest;
+    const end = parseDate(shutdown.end_datetime_et);
+    
+    if (end) {
+      const secondsUntilEnd = Math.round((end - now) / 1000);
+      // if (secondsUntilEnd >= 0) {
+      //   console.log(
+      //     `[USA Status] Seconds until last shutdown ends (shutdown_id: ${shutdown.shutdown_id}): ${secondsUntilEnd} (end: ${end.toISOString()}, now: ${now.toISOString()})`
+      //   );
+      // } else {
+      //   console.log(
+      //     `[USA Status] Seconds since last shutdown ended (shutdown_id: ${shutdown.shutdown_id}): ${Math.abs(secondsUntilEnd)} (end: ${end.toISOString()}, now: ${now.toISOString()})`
+      //   );
+      // }
+    } else if (start) {
+      // const secondsSinceStart = Math.max(0, Math.round((now - start) / 1000));
+      // console.log(
+      //   `[USA Status] Seconds since ongoing shutdown started (shutdown_id: ${shutdown.shutdown_id}): ${secondsSinceStart} (start: ${start.toISOString()}, now: ${now.toISOString()})`
+      // );
+    }
+  };
   
   // Generate months for past 15 years
   const generateMonths = () => {
@@ -49,7 +121,7 @@
   };
   
   // Calculate shutdown days for a department (live)
-  const calculateDepartmentShutdownDays = (dept, impacts) => {
+  const calculateDepartmentShutdownDays = (dept, impacts, now = currentTime) => {
     const shutdownSet = new Set();
     impacts.forEach(impact => {
       if (impact.department === dept) {
@@ -60,23 +132,14 @@
     return Array.from(shutdownSet).reduce((sum, shutdownId) => {
       const shutdown = shutdowns.find(s => s.shutdown_id === shutdownId);
       if (shutdown) {
-        if (shutdown.duration_days) {
-          return sum + parseFloat(shutdown.duration_days);
-        } else if (shutdown.start_datetime_et) {
-          // Ongoing shutdown - calculate current duration
-          const start = new Date(shutdown.start_datetime_et);
-          const now = currentTime;
-          const diff = now - start;
-          const days = diff / (1000 * 60 * 60 * 24);
-          return sum + days;
-        }
+        return sum + getShutdownDurationDays(shutdown, now);
       }
       return sum;
     }, 0);
   };
   
   // Calculate shutdown days for an agency (live)
-  const calculateAgencyShutdownDays = (agency, impacts) => {
+  const calculateAgencyShutdownDays = (agency, impacts, now = currentTime) => {
     const shutdownSet = new Set();
     impacts.forEach(impact => {
       if (impact.agency === agency) {
@@ -87,16 +150,7 @@
     return Array.from(shutdownSet).reduce((sum, shutdownId) => {
       const shutdown = shutdowns.find(s => s.shutdown_id === shutdownId);
       if (shutdown) {
-        if (shutdown.duration_days) {
-          return sum + parseFloat(shutdown.duration_days);
-        } else if (shutdown.start_datetime_et) {
-          // Ongoing shutdown - calculate current duration
-          const start = new Date(shutdown.start_datetime_et);
-          const now = currentTime;
-          const diff = now - start;
-          const days = diff / (1000 * 60 * 60 * 24);
-          return sum + days;
-        }
+        return sum + getShutdownDurationDays(shutdown, now);
       }
       return sum;
     }, 0);
@@ -105,6 +159,7 @@
   // Parse data immediately
   shutdowns = parseCSV(shutdownsCsv);
   agencyImpacts = parseCSV(agencyImpactsCsv);
+  logSecondsRelativeToLastShutdown(currentTime);
   
   // Group agencies by department
   const deptMap = new Map();
@@ -136,13 +191,13 @@
   // Reactive department groups with live uptimes
   let departmentGroups = $derived(
     staticDepartmentGroups.map(dept => {
-      const deptShutdownDays = calculateDepartmentShutdownDays(dept.name, dept.impacts);
+      const deptShutdownDays = calculateDepartmentShutdownDays(dept.name, dept.impacts, currentTime);
       const deptUptime = calculateUptime(deptShutdownDays, 15 * 365.25);
       
       // Calculate individual agency uptimes
       const agencyUptimes = {};
       dept.agencies.forEach(agency => {
-        const agencyDays = calculateAgencyShutdownDays(agency, dept.impacts);
+        const agencyDays = calculateAgencyShutdownDays(agency, dept.impacts, currentTime);
         agencyUptimes[agency] = calculateUptime(agencyDays, 15 * 365.25);
       });
       
@@ -156,29 +211,17 @@
   );
   
   // Calculate live uptime percentages
-  const calculateLiveUptime = () => {
+  const calculateLiveUptime = (now = currentTime) => {
     const totalDays = 15 * 365.25;
-    let shutdownDays = 0;
-    
-    shutdowns.forEach(s => {
-      if (s.duration_days) {
-        // Completed shutdown
-        shutdownDays += parseFloat(s.duration_days);
-      } else if (s.start_datetime_et) {
-        // Ongoing shutdown - calculate current duration
-        const start = new Date(s.start_datetime_et);
-        const now = currentTime;
-        const diff = now - start;
-        const days = diff / (1000 * 60 * 60 * 24);
-        shutdownDays += days;
-      }
-    });
+    const shutdownDays = shutdowns.reduce((sum, shutdown) => {
+      return sum + getShutdownDurationDays(shutdown, now);
+    }, 0);
     
     return calculateUptime(shutdownDays, totalDays);
   };
 
   // Reactive global uptime
-  let globalUptimePercentage = $derived(calculateLiveUptime());
+  let globalUptimePercentage = $derived(calculateLiveUptime(currentTime));
   
   // Get status for a specific month
   const getMonthStatus = (monthStart, monthEnd, dept = null, agency = null) => {
@@ -254,31 +297,32 @@
   };
   
   // Check if there's an ongoing shutdown
-  const hasOngoingShutdown = () => {
-    return shutdowns.some(s => !s.end_datetime_et);
+  const hasOngoingShutdown = (now = currentTime) => {
+    return shutdowns.some(shutdown => isShutdownActive(shutdown, now));
   };
   
   // Check if a department has ongoing shutdowns affecting its agencies
-  const departmentHasOngoingShutdown = (deptName) => {
+  const departmentHasOngoingShutdown = (deptName, now = currentTime) => {
     for (const shutdown of shutdowns) {
-      if (!shutdown.end_datetime_et) { // ongoing shutdown
-        // Check if any agency in this department is affected
-        const affectedAgency = agencyImpacts.find(impact => 
-          impact.shutdown_id === shutdown.shutdown_id && 
-          impact.department === deptName
-        );
-        if (affectedAgency) {
-          return true;
-        }
+      if (!isShutdownActive(shutdown, now)) {
+        continue;
+      }
+      
+      // Check if any agency in this department is affected
+      const affectedAgency = agencyImpacts.find(impact => 
+        impact.shutdown_id === shutdown.shutdown_id && 
+        impact.department === deptName
+      );
+      if (affectedAgency) {
+        return true;
       }
     }
     return false;
   };
 
   // Calculate duration for ongoing shutdowns
-  const getShutdownDuration = (startDate) => {
+  const getShutdownDuration = (startDate, now = currentTime) => {
     const start = new Date(startDate);
-    const now = currentTime;
     const diff = now - start;
     
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -293,7 +337,13 @@
   // Start timer for live updates
   onMount(() => {
     interval = setInterval(() => {
-      currentTime = new Date();
+      const now = new Date();
+      currentTime = now;
+      
+      if (now.getTime() - lastSecondsLogTimestamp >= 1000) {
+        lastSecondsLogTimestamp = now.getTime();
+        logSecondsRelativeToLastShutdown(now);
+      }
     }, 30);
   });
 
@@ -312,7 +362,7 @@
       <p class="text-xl text-gray-600 mb-3">Federal Government Uptime Monitor*</p>
       
       <!-- Overall Status -->
-      {#if hasOngoingShutdown()}
+      {#if hasOngoingShutdown(currentTime)}
         <div class="inline-flex items-center bg-red-100 text-red-800 px-6 py-4 rounded-lg text-lg font-semibold">
           <span class="w-3 h-3 bg-red-500 rounded-full mr-2 animate-pulse"></span>
           Government is Shut Down
@@ -326,9 +376,9 @@
       
       <!-- Uptime percentage -->
       <div class="mt-2">
-        {#if hasOngoingShutdown()}
-          {@const ongoingShutdown = shutdowns.find(s => !s.end_datetime_et)}
-          <p class="text-lg text-red-800 mb-2">down for {getShutdownDuration(ongoingShutdown.start_datetime_et)}</p>
+        {#if hasOngoingShutdown(currentTime)}
+          {@const ongoingShutdown = shutdowns.find(s => isShutdownActive(s, currentTime))}
+          <p class="text-lg text-red-800 mb-2">down for {getShutdownDuration(ongoingShutdown.start_datetime_et, currentTime)}</p>
         {/if}
         <p class="mt-2 text-3xl font-bold text-gray-900">{globalUptimePercentage}%</p>
         <p class="text-sm text-gray-500">Uptime over the last 15 years</p>
@@ -341,7 +391,7 @@
       <div class="px-6 py-4 border-b border-gray-200">
         <div class="flex items-center justify-between mb-3">
           <span class="text-base font-medium text-gray-900">US Government</span>
-          {#if hasOngoingShutdown()}
+          {#if hasOngoingShutdown(currentTime)}
             <span class="text-sm font-medium text-red-600">Shut Down</span>
           {:else}
             <span class="text-sm font-medium text-green-600">Operational</span>
@@ -362,7 +412,7 @@
                       <br>No shutdowns
                     {:else}
                       <br>{status.shutdown.name}
-                      <br>{status.shutdown.duration_days ? `${status.shutdown.duration_days} days` : getShutdownDuration(status.shutdown.start_datetime_et)}
+                      <br>{status.shutdown.duration_days ? `${status.shutdown.duration_days} days` : getShutdownDuration(status.shutdown.start_datetime_et, currentTime)}
                     {/if}
                   </div>
                   <div class="absolute left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
@@ -405,7 +455,7 @@
                   {dept.agencies.length === 1 ? dept.agencies[0] : dept.name}
                 </span>
               </div>
-              {#if departmentHasOngoingShutdown(dept.name)}
+              {#if departmentHasOngoingShutdown(dept.name, currentTime)}
                 <span class="text-sm font-medium text-red-600">Shut Down</span>
               {:else}
                 <span class="text-sm font-medium text-green-600">Operational</span>
