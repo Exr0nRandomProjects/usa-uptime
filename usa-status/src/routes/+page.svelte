@@ -109,7 +109,8 @@
       const values = line.split(',');
       const obj = {};
       headers.forEach((header, i) => {
-        obj[header] = values[i];
+        const value = values[i];
+        obj[header] = typeof value === 'string' ? value.trim() : value;
       });
       return obj;
     });
@@ -225,6 +226,7 @@
   
   // Get status for a specific month
   const getMonthStatus = (monthStart, monthEnd, dept = null, agency = null) => {
+    const now = currentTime;
     // Debug logging for global view
     if (!dept && !agency) {
       console.log('Checking global status for month:', monthStart.toISOString().substring(0, 7));
@@ -232,16 +234,24 @@
     }
     
     for (const shutdown of shutdowns) {
-      const start = new Date(shutdown.start_datetime_et);
-      const end = shutdown.end_datetime_et ? new Date(shutdown.end_datetime_et) : new Date();
+      const start = parseDate(shutdown.start_datetime_et);
+      const rawEnd = parseDate(shutdown.end_datetime_et);
+      const comparisonEnd = rawEnd ?? now;
       
       // Debug log for global view
       if (!dept && !agency) {
-        console.log('Shutdown:', shutdown.shutdown_id, 'Start:', start.toISOString(), 'End:', end ? end.toISOString() : 'ongoing');
+        console.log(
+          'Shutdown:',
+          shutdown.shutdown_id,
+          'Start:',
+          start ? start.toISOString() : 'unknown',
+          'End:',
+          rawEnd ? rawEnd.toISOString() : 'ongoing (using current time)'
+        );
       }
       
       // Check if shutdown overlaps with this month
-      if (start <= monthEnd && end >= monthStart) {
+      if (start && start <= monthEnd && comparisonEnd >= monthStart) {
         if (!dept && !agency) {
           // Global status - show any shutdown
           console.log('Found shutdown overlap for month:', monthStart.toISOString().substring(0, 7));
